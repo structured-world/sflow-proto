@@ -1,0 +1,615 @@
+// SFLOW CE — Core types for workflow engine.
+//
+// These types map 1:1 to Rust types in sflow-api and sflow-core crates.
+// Proto is the source of truth for the gRPC API; Rust types are generated
+// from these definitions via tonic-build.
+
+syntax = "proto3";
+
+package sflow.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// =============================================================================
+// Identifiers
+// =============================================================================
+
+// Namespace identifier for multi-tenancy isolation.
+// CE: single namespace ("default"). EE: unlimited.
+message NamespaceId {
+  string value = 1;
+}
+
+// Reference to an identity (user, service account, system).
+// Opaque to SFLOW — products resolve via IdentityProvider trait.
+message IdentityRef {
+  // Identity type: "user", "service_account", "system"
+  string kind = 1;
+  // Identity value: user sub, service account name, etc.
+  string value = 2;
+}
+
+// Logical actor address: {instance_id}/{actor_path}.
+// Stable across restarts, migrations, scaling.
+message ActorAddress {
+  string instance_id = 1;  // UUID
+  string actor_path = 2;   // hierarchical path, e.g., "root.worker.0"
+}
+
+// Correlation key for message routing by business identifier.
+message CorrelationKey {
+  string name = 1;   // e.g., "order_id", "customer_id"
+  string value = 2;  // e.g., "order-789"
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+// Workflow execution mode — determines lifecycle semantics.
+enum WorkflowMode {
+  WORKFLOW_MODE_UNSPECIFIED = 0;
+  // Has final states, completes when reached.
+  WORKFLOW_MODE_PROCESS = 1;
+  // No final states, lives indefinitely (entity store pattern, EE).
+  WORKFLOW_MODE_ENTITY = 2;
+  // Always-active stream consumer, forks children on trigger (EE).
+  WORKFLOW_MODE_STREAM = 3;
+}
+
+// Instance lifecycle status.
+enum InstanceStatus {
+  INSTANCE_STATUS_UNSPECIFIED = 0;
+  // In memory, processing events.
+  INSTANCE_STATUS_ACTIVE = 1;
+  // Persisted to DB, waiting for timer or event.
+  INSTANCE_STATUS_SLEEPING = 2;
+  // Final state reached (success).
+  INSTANCE_STATUS_COMPLETED = 3;
+  // Final state reached (failure).
+  INSTANCE_STATUS_FAILED = 4;
+  // Running compensation logic.
+  INSTANCE_STATUS_COMPENSATING = 5;
+  // Manually paused by admin.
+  INSTANCE_STATUS_SUSPENDED = 6;
+  // Being migrated to new version.
+  INSTANCE_STATUS_MIGRATING = 7;
+}
+
+// Message priority for actor delivery.
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  // Saga compensation, escalation actions.
+  PRIORITY_HIGH = 1;
+  // Regular actor messages, state transitions.
+  PRIORITY_NORMAL = 2;
+  // Monitoring, metrics, non-critical notifications.
+  PRIORITY_LOW = 3;
+}
+
+// Search attribute type declaration.
+enum SearchAttrType {
+  SEARCH_ATTR_TYPE_UNSPECIFIED = 0;
+  SEARCH_ATTR_TYPE_KEYWORD = 1;   // exact match: status, region
+  SEARCH_ATTR_TYPE_TEXT = 2;      // full-text: error_message
+  SEARCH_ATTR_TYPE_INT = 3;       // numeric: amount, retry_count
+  SEARCH_ATTR_TYPE_DOUBLE = 4;    // decimal: price
+  SEARCH_ATTR_TYPE_DATETIME = 5;  // timestamp: due_date
+  SEARCH_ATTR_TYPE_BOOL = 6;      // boolean: is_escalated
+}
+
+// State type discriminator.
+enum StateType {
+  STATE_TYPE_UNSPECIFIED = 0;
+  STATE_TYPE_ATOMIC = 1;
+  STATE_TYPE_COMPOUND = 2;
+  STATE_TYPE_PARALLEL = 3;
+  STATE_TYPE_FINAL = 4;
+  STATE_TYPE_HISTORY = 5;
+}
+
+// History state type.
+enum HistoryType {
+  HISTORY_TYPE_UNSPECIFIED = 0;
+  HISTORY_TYPE_SHALLOW = 1;
+  HISTORY_TYPE_DEEP = 2;
+}
+
+// Supervision strategy for spawned child actors.
+enum SupervisionStrategy {
+  SUPERVISION_STRATEGY_UNSPECIFIED = 0;
+  // Child fails → stop child, notify parent.
+  SUPERVISION_STRATEGY_STOP = 1;
+  // Child fails → restart child with last known state.
+  SUPERVISION_STRATEGY_RESTART = 2;
+  // Child fails → propagate failure to parent.
+  SUPERVISION_STRATEGY_ESCALATE = 3;
+}
+
+// Block type discriminator.
+enum BlockType {
+  BLOCK_TYPE_UNSPECIFIED = 0;
+  BLOCK_TYPE_WASM = 1;       // WebAssembly plugin (EE)
+  BLOCK_TYPE_CONTAINER = 2;  // OCI container
+  BLOCK_TYPE_GRPC = 3;       // gRPC service
+  BLOCK_TYPE_HTTP = 4;       // HTTP webhook
+}
+
+// Types of event history records.
+enum EventRecordType {
+  EVENT_RECORD_TYPE_UNSPECIFIED = 0;
+  EVENT_RECORD_TYPE_CREATED = 1;
+  EVENT_RECORD_TYPE_TRANSITION = 2;
+  EVENT_RECORD_TYPE_ACTIVITY_STARTED = 3;
+  EVENT_RECORD_TYPE_ACTIVITY_COMPLETED = 4;
+  EVENT_RECORD_TYPE_ACTIVITY_FAILED = 5;
+  EVENT_RECORD_TYPE_HEARTBEAT = 6;
+  EVENT_RECORD_TYPE_TIMER_FIRED = 7;
+  EVENT_RECORD_TYPE_SIGNAL_RECEIVED = 8;
+  EVENT_RECORD_TYPE_CONTEXT_UPDATED = 9;
+  EVENT_RECORD_TYPE_SUSPENDED = 10;
+  EVENT_RECORD_TYPE_RESUMED = 11;
+  EVENT_RECORD_TYPE_MIGRATED = 12;
+  EVENT_RECORD_TYPE_CONTINUED_AS_NEW = 13;
+}
+
+// Schedule overlap policy.
+enum OverlapPolicy {
+  OVERLAP_POLICY_UNSPECIFIED = 0;
+  // Skip this run (default — safest).
+  OVERLAP_POLICY_SKIP = 1;
+  // Queue — wait for previous to complete, then start.
+  OVERLAP_POLICY_QUEUE = 2;
+  // Cancel the existing run and start a new one.
+  OVERLAP_POLICY_CANCEL_EXISTING = 3;
+  // Allow parallel runs (no overlap protection).
+  OVERLAP_POLICY_ALLOW = 4;
+}
+
+// Schedule lifecycle state.
+enum ScheduleState {
+  SCHEDULE_STATE_UNSPECIFIED = 0;
+  SCHEDULE_STATE_ACTIVE = 1;
+  SCHEDULE_STATE_PAUSED = 2;
+  SCHEDULE_STATE_DISABLED = 3;
+}
+
+// Namespace lifecycle state.
+enum NamespaceState {
+  NAMESPACE_STATE_UNSPECIFIED = 0;
+  NAMESPACE_STATE_ACTIVE = 1;
+  NAMESPACE_STATE_ARCHIVED = 2;
+  NAMESPACE_STATE_DELETING = 3;
+}
+
+// Cross-namespace permission.
+enum NamespacePermission {
+  NAMESPACE_PERMISSION_UNSPECIFIED = 0;
+  NAMESPACE_PERMISSION_SEND_EVENT = 1;
+  NAMESPACE_PERMISSION_SIGNAL = 2;
+  NAMESPACE_PERMISSION_QUERY = 3;
+  NAMESPACE_PERMISSION_START_INSTANCE = 4;
+  NAMESPACE_PERMISSION_CORRELATE = 5;
+}
+
+// =============================================================================
+// Workflow Instance
+// =============================================================================
+
+// A running workflow instance — full state snapshot.
+message WorkflowInstance {
+  string instance_id = 1;  // UUID
+  NamespaceId namespace = 2;
+  string definition_id = 3;
+  string definition_version = 4;
+  StateConfiguration current_state = 5;
+  google.protobuf.Struct context = 6;
+  repeated EventRecord history = 7;
+  map<string, google.protobuf.Value> search_attributes = 8;
+  repeated CorrelationKey correlation_keys = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+  IdentityRef owner = 12;
+  InstanceStatus status = 13;
+  WorkflowMode mode = 14;
+  // History of previously active states per compound state path.
+  map<string, StateHistoryList> state_history = 15;
+  // When the instance should be woken (timer-based transitions).
+  optional google.protobuf.Timestamp wake_at = 16;
+  // Parent actor address (if spawned as child).
+  optional ActorAddress parent = 17;
+  // Chain to previous instance (for continue-as-new).
+  optional string continue_chain = 18;  // UUID
+}
+
+// Helper for state_history map values.
+message StateHistoryList {
+  repeated string states = 1;
+}
+
+// Current state configuration — supports parallel states.
+message StateConfiguration {
+  // Active state IDs (single for atomic, multiple for parallel regions).
+  repeated string active_states = 1;
+}
+
+// Summary of a workflow instance (for search results).
+message WorkflowSummary {
+  string instance_id = 1;  // UUID
+  NamespaceId namespace = 2;
+  string definition_id = 3;
+  string definition_version = 4;
+  InstanceStatus status = 5;
+  StateConfiguration current_state = 6;
+  map<string, google.protobuf.Value> search_attributes = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// =============================================================================
+// Workflow Events
+// =============================================================================
+
+// An event sent to a workflow instance.
+message WorkflowEvent {
+  // Event type name (e.g., "INITIATE", "PAYMENT_COMPLETED").
+  string type = 1;
+  // Event payload data.
+  google.protobuf.Struct data = 2;
+}
+
+// An immutable event record in the instance history.
+message EventRecord {
+  // Sequence number (monotonically increasing per instance).
+  uint64 seq = 1;
+  // Record type.
+  EventRecordType type = 2;
+  // Timestamp of the event.
+  google.protobuf.Timestamp timestamp = 3;
+  // Additional data (varies by record type).
+  google.protobuf.Struct data = 4;
+}
+
+// Result of processing a transition.
+message TransitionResult {
+  // Whether a transition actually occurred.
+  bool transitioned = 1;
+  // Current state(s) after processing.
+  StateConfiguration current_state = 2;
+  // Updated context.
+  google.protobuf.Struct context = 3;
+  // Events produced by actions during transition.
+  repeated WorkflowEvent produced_events = 4;
+}
+
+// =============================================================================
+// Statechart Definition
+// =============================================================================
+
+// Statechart definition loaded from xstate v5-compatible JSON.
+message StatechartDef {
+  // Unique definition identifier (e.g., "booking_saga").
+  string id = 1;
+  // Semantic version.
+  string version = 2;
+  // Initial state ID.
+  string initial = 3;
+  // Initial context schema/values.
+  google.protobuf.Struct context = 4;
+  // State definitions.
+  map<string, StateDef> states = 5;
+  // Indexed search attributes declaration.
+  map<string, SearchAttrType> search_attributes = 6;
+  // Default escalation rules (overridable per state).
+  optional EscalationRules escalation_defaults = 7;
+  // Workflow mode.
+  WorkflowMode mode = 8;
+  // --- SFLOW extensions (ignored by xstate.js) ---
+  optional string sflow_namespace = 9;
+  map<string, BlockRef> sflow_blocks = 10;
+  optional RetentionPolicy sflow_retention = 11;
+}
+
+// Definition of a single state within a statechart.
+message StateDef {
+  StateType type = 1;
+  optional string initial = 2;
+  map<string, StateDef> states = 3;
+  // Event-driven transitions: event_name → target.
+  map<string, TransitionTarget> on = 4;
+  // Delayed transitions: duration_ms → target.
+  map<string, TransitionTarget> after = 5;
+  // Eventless transitions (guard-based, evaluated on entry).
+  repeated ConditionalTransition always = 6;
+  // Entry actions.
+  repeated ActionDef entry = 7;
+  // Exit actions.
+  repeated ActionDef exit = 8;
+  // Service invocation.
+  optional InvokeDef invoke = 9;
+  // Multi-instance (for-each) invocation.
+  optional InvokeEachDef invoke_each = 10;
+  // History type (for history states).
+  HistoryType history = 11;
+  // Escalation rules for this state.
+  optional EscalationRules escalation = 12;
+}
+
+// Transition target — can be a simple target or conditional array.
+message TransitionTarget {
+  oneof target {
+    // Simple target state.
+    string simple = 1;
+    // Transition with actions/guard.
+    TransitionConfig with_config = 2;
+    // Array of conditional transitions (first matching guard wins).
+    ConditionalTransitionList conditional = 3;
+  }
+}
+
+message ConditionalTransitionList {
+  repeated ConditionalTransition transitions = 1;
+}
+
+// Transition configuration with optional guard and actions.
+message TransitionConfig {
+  string target = 1;
+  optional GuardDef guard = 2;
+  repeated ActionDef actions = 3;
+}
+
+// Conditional transition.
+message ConditionalTransition {
+  string target = 1;
+  optional GuardDef guard = 2;
+  repeated ActionDef actions = 3;
+}
+
+// Guard definition — CEL expression or combinator.
+message GuardDef {
+  oneof guard {
+    // CEL expression string.
+    string expression = 1;
+    // Guard combinator.
+    GuardCombinator combinator = 2;
+  }
+}
+
+// Guard combinator (not, and, or).
+message GuardCombinator {
+  oneof combinator {
+    GuardDef not = 1;
+    GuardList and = 2;
+    GuardList or = 3;
+  }
+}
+
+message GuardList {
+  repeated GuardDef guards = 1;
+}
+
+// Action definition.
+message ActionDef {
+  oneof action {
+    // Named action reference.
+    string named = 1;
+    // Structured action with type and parameters.
+    StructuredAction structured = 2;
+  }
+}
+
+// Structured action with explicit type.
+message StructuredAction {
+  oneof action {
+    AssignAction assign = 1;
+    SendToAction send_to = 2;
+    RaiseAction raise = 3;
+    LogAction log = 4;
+    EscalateAction escalate = 5;
+  }
+}
+
+message AssignAction {
+  string path = 1;
+  string expr = 2;  // CEL expression
+}
+
+message SendToAction {
+  string target = 1;
+  google.protobuf.Struct event = 2;
+}
+
+message RaiseAction {
+  google.protobuf.Struct event = 1;
+}
+
+message LogAction {
+  optional string expr = 1;
+  optional string level = 2;
+}
+
+message EscalateAction {
+  optional string level = 1;
+}
+
+// Service invocation definition.
+message InvokeDef {
+  string src = 1;
+  string on_done = 2;
+  optional string on_error = 3;
+  optional google.protobuf.Struct input = 4;
+}
+
+// Multi-instance (for-each) invocation.
+message InvokeEachDef {
+  string src = 1;
+  // CEL path to array in context.
+  string collection = 2;
+  // Sequential or parallel iteration (default: true).
+  bool parallel = 3;
+  string on_all_done = 4;
+  optional string on_any_error = 5;
+}
+
+// Escalation rules for a state.
+message EscalationRules {
+  // Duration before sending warning.
+  optional google.protobuf.Duration warn_after = 1;
+  // Duration before escalating to supervisor.
+  optional google.protobuf.Duration escalate_after = 2;
+  // Duration before force-aborting.
+  optional google.protobuf.Duration abort_after = 3;
+}
+
+// Block reference (service invocation target).
+message BlockRef {
+  BlockType type = 1;
+  string source = 2;
+  google.protobuf.Struct config = 3;
+}
+
+// History retention policy.
+message RetentionPolicy {
+  optional uint64 max_events = 1;
+  optional uint64 completed_ttl_secs = 2;
+}
+
+// =============================================================================
+// Schedule
+// =============================================================================
+
+// A schedule definition — when and how to create workflow instances.
+message Schedule {
+  string id = 1;  // UUID
+  string name = 2;
+  NamespaceId namespace = 3;
+  string definition_id = 4;
+  // Cron expression (5/6 field).
+  string cron = 5;
+  // Random jitter range in milliseconds (0 = no jitter).
+  uint64 jitter_ms = 6;
+  OverlapPolicy overlap_policy = 7;
+  // Whether to catch up missed runs on startup.
+  bool backfill = 8;
+  // Maximum number of backfill runs.
+  uint32 max_backfill = 9;
+  // Context template for created instances.
+  google.protobuf.Struct context = 10;
+  IdentityRef owner = 11;
+  ScheduleState state = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+  map<string, google.protobuf.Value> search_attributes = 15;
+  optional google.protobuf.Timestamp last_run_at = 16;
+  optional google.protobuf.Timestamp next_run_at = 17;
+  uint64 run_count = 18;
+}
+
+// =============================================================================
+// Namespace
+// =============================================================================
+
+// Namespace configuration — defines a tenant's boundaries and quotas.
+message Namespace {
+  NamespaceId id = 1;
+  string display_name = 2;
+  NamespaceQuotas quotas = 3;
+  NamespaceUsage usage = 4;
+  NamespaceState state = 5;
+  repeated NamespaceGrant acl = 6;
+  map<string, string> labels = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// Resource quotas for a namespace.
+message NamespaceQuotas {
+  uint64 max_instances = 1;            // 0 = unlimited
+  uint64 max_definitions = 2;
+  uint64 max_state_changes_month = 3;
+  uint64 max_history_per_instance = 4;
+  uint64 max_schedules = 5;
+}
+
+// Current resource usage counters.
+message NamespaceUsage {
+  uint64 active_instances = 1;
+  uint64 definitions = 2;
+  uint64 state_changes_month = 3;
+  uint64 schedules = 4;
+}
+
+// Cross-namespace access grant.
+message NamespaceGrant {
+  NamespaceId grantee = 1;
+  repeated NamespacePermission permissions = 2;
+  optional google.protobuf.Timestamp expires_at = 3;
+}
+
+// =============================================================================
+// Migration
+// =============================================================================
+
+// Migration plan for transitioning instances between workflow versions.
+message MigrationPlan {
+  string source_version = 1;
+  string target_version = 2;
+  // Old state ID → new state ID.
+  map<string, string> state_mappings = 3;
+  // Old context field → new context field.
+  map<string, string> context_mappings = 4;
+}
+
+// =============================================================================
+// Actor Model
+// =============================================================================
+
+// Actor message with routing metadata.
+message ActorMessage {
+  ActorAddress from = 1;
+  ActorAddress to = 2;
+  google.protobuf.Struct payload = 3;
+  string idempotency_key = 4;  // UUID
+  Priority priority = 5;
+  optional google.protobuf.Duration ttl = 6;
+  optional ActorAddress reply_to = 7;
+}
+
+// Spawn definition for creating child actors.
+message SpawnDef {
+  string name = 1;
+  google.protobuf.Struct context = 2;
+  SupervisionStrategy supervision = 3;
+}
+
+// Placement hint for actor spawning.
+enum PlacementHint {
+  PLACEMENT_HINT_UNSPECIFIED = 0;
+  // Default: colocate with parent.
+  PLACEMENT_HINT_SAME_NODE = 1;
+  // Any node in same region.
+  PLACEMENT_HINT_SAME_REGION = 2;
+  // Node with most available capacity.
+  PLACEMENT_HINT_LEAST_LOADED = 3;
+  // Pin to specific region (see placement_region field).
+  PLACEMENT_HINT_SPECIFIC_REGION = 4;
+}
+
+// =============================================================================
+// Search & Query
+// =============================================================================
+
+// Search query for workflow instances.
+message SearchQuery {
+  optional InstanceStatus status = 1;
+  optional string definition_id = 2;
+  map<string, google.protobuf.Value> attributes = 3;
+  optional uint32 limit = 4;
+  optional uint32 offset = 5;
+  optional google.protobuf.Timestamp created_after = 6;
+  optional google.protobuf.Timestamp created_before = 7;
+  optional google.protobuf.Timestamp updated_after = 8;
+  optional google.protobuf.Timestamp updated_before = 9;
+}
