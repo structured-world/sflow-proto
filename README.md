@@ -1,11 +1,12 @@
 # sflow-proto
 
-Protobuf definitions for SFLOW workflow engine.
+CE Protobuf definitions for SFLOW workflow engine (Apache 2.0).
+
+Mirrored to GitHub on release tags. EE protos are in a separate repo (`sflow-proto-ee`).
 
 ## Structure
 
-- `sflow/v1/` — CE API definitions (mirrored to GitHub under Apache 2.0)
-- `sflow/ee/v1/` — EE API definitions (private, never public)
+- `sflow/v1/` — CE API definitions
 
 ## Code Generation
 
