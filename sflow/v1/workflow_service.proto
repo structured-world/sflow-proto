@@ -1,0 +1,242 @@
+// SFLOW CE — Workflow Service API.
+//
+// Core runtime API: start workflows, send events, query state,
+// signal, correlate, search, suspend/resume, migrate.
+
+syntax = "proto3";
+
+package sflow.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "sflow/v1/types.proto";
+
+service WorkflowService {
+  // Start a new workflow instance from a registered definition.
+  rpc StartWorkflow(StartWorkflowRequest) returns (StartWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows"
+      body: "*"
+    };
+  }
+
+  // Send an event to a workflow instance (fire-and-forget).
+  rpc SendEvent(SendEventRequest) returns (SendEventResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/events"
+      body: "*"
+    };
+  }
+
+  // Send an event and wait for the transition result (synchronous).
+  rpc UpdateWorkflow(UpdateWorkflowRequest) returns (UpdateWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/update"
+      body: "*"
+    };
+  }
+
+  // Query workflow state (read-only, no state change).
+  rpc QueryWorkflow(QueryWorkflowRequest) returns (QueryWorkflowResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/workflows/{instance_id}/query/{query_name}"
+    };
+  }
+
+  // Send a signal (broadcast) to all matching workflows in a namespace.
+  rpc SignalWorkflow(SignalWorkflowRequest) returns (SignalWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/signals/{signal_name}"
+      body: "*"
+    };
+  }
+
+  // Route an event by business correlation key.
+  rpc CorrelateEvent(CorrelateEventRequest) returns (CorrelateEventResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/correlate"
+      body: "*"
+    };
+  }
+
+  // Get full workflow instance state.
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/workflows/{instance_id}"
+    };
+  }
+
+  // Search workflow instances by attributes.
+  rpc SearchWorkflows(SearchWorkflowsRequest) returns (SearchWorkflowsResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/search"
+      body: "*"
+    };
+  }
+
+  // Suspend a workflow instance (admin action).
+  rpc SuspendWorkflow(SuspendWorkflowRequest) returns (SuspendWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/suspend"
+    };
+  }
+
+  // Resume a suspended workflow instance.
+  rpc ResumeWorkflow(ResumeWorkflowRequest) returns (ResumeWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/resume"
+    };
+  }
+
+  // Cancel a workflow instance.
+  rpc CancelWorkflow(CancelWorkflowRequest) returns (CancelWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/cancel"
+    };
+  }
+
+  // Get event history for a workflow instance.
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/workflows/{instance_id}/history"
+    };
+  }
+}
+
+// =============================================================================
+// Request / Response messages
+// =============================================================================
+
+message StartWorkflowRequest {
+  string namespace = 1;
+  string definition_id = 2;
+  // Optional: specific definition version (default: latest).
+  optional string definition_version = 3;
+  // Initial context.
+  google.protobuf.Struct context = 4;
+  // Correlation keys for message routing.
+  repeated CorrelationKey correlation_keys = 5;
+  // Search attributes to set on the instance.
+  map<string, google.protobuf.Value> search_attributes = 6;
+  // Idempotency key (prevents duplicate starts).
+  optional string idempotency_key = 7;
+}
+
+message StartWorkflowResponse {
+  string instance_id = 1;
+  ActorAddress actor_address = 2;
+}
+
+message SendEventRequest {
+  string namespace = 1;
+  string instance_id = 2;
+  WorkflowEvent event = 3;
+}
+
+message SendEventResponse {
+  // Whether a transition occurred.
+  bool transitioned = 1;
+}
+
+message UpdateWorkflowRequest {
+  string namespace = 1;
+  string instance_id = 2;
+  WorkflowEvent event = 3;
+}
+
+message UpdateWorkflowResponse {
+  TransitionResult result = 1;
+}
+
+message QueryWorkflowRequest {
+  string namespace = 1;
+  string instance_id = 2;
+  string query_name = 3;
+}
+
+message QueryWorkflowResponse {
+  google.protobuf.Value result = 1;
+}
+
+message SignalWorkflowRequest {
+  string namespace = 1;
+  string signal_name = 2;
+  // Optional data payload for the signal.
+  google.protobuf.Struct data = 3;
+}
+
+message SignalWorkflowResponse {
+  // Actor addresses that received the signal.
+  repeated ActorAddress recipients = 1;
+}
+
+message CorrelateEventRequest {
+  string namespace = 1;
+  // Correlation name (e.g., "order_id").
+  string correlation_name = 2;
+  // Correlation value (e.g., "order-789").
+  string correlation_key = 3;
+  // Event data to deliver.
+  google.protobuf.Struct data = 4;
+}
+
+message CorrelateEventResponse {
+  // Whether a matching instance was found.
+  bool matched = 1;
+  // The matched instance's actor address (if found).
+  optional ActorAddress target = 2;
+}
+
+message GetWorkflowRequest {
+  string namespace = 1;
+  string instance_id = 2;
+}
+
+message GetWorkflowResponse {
+  WorkflowInstance instance = 1;
+}
+
+message SearchWorkflowsRequest {
+  string namespace = 1;
+  SearchQuery query = 2;
+}
+
+message SearchWorkflowsResponse {
+  repeated WorkflowSummary workflows = 1;
+  // Total count (for pagination).
+  uint32 total_count = 2;
+}
+
+message SuspendWorkflowRequest {
+  string namespace = 1;
+  string instance_id = 2;
+}
+
+message ResumeWorkflowRequest {
+  string namespace = 1;
+  string instance_id = 2;
+}
+
+message SuspendWorkflowResponse {}
+
+message ResumeWorkflowResponse {}
+
+message CancelWorkflowRequest {
+  string namespace = 1;
+  string instance_id = 2;
+}
+
+message CancelWorkflowResponse {}
+
+message GetHistoryRequest {
+  string namespace = 1;
+  string instance_id = 2;
+  // Return events after this sequence number (for pagination).
+  uint64 after_seq = 3;
+  // Maximum events to return.
+  uint32 limit = 4;
+}
+
+message GetHistoryResponse {
+  repeated EventRecord events = 1;
+}

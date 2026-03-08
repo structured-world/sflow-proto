@@ -1,0 +1,139 @@
+// SFLOW CE — Block Service API.
+//
+// Block management: install, list, search blocks in the local registry.
+// CE: built-in blocks only (Layer 0 + Layer 1).
+// EE: extends with WASM plugin blocks and marketplace (sflow/ee/v1/).
+
+syntax = "proto3";
+
+package sflow.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "sflow/v1/types.proto";
+
+service BlockService {
+  // List installed blocks.
+  rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse) {
+    option (google.api.http) = {
+      get: "/v1/blocks"
+    };
+  }
+
+  // Get block metadata by ID.
+  rpc GetBlock(GetBlockRequest) returns (GetBlockResponse) {
+    option (google.api.http) = {
+      get: "/v1/blocks/{block_id}"
+    };
+  }
+
+  // Search blocks by query.
+  rpc SearchBlocks(SearchBlocksRequest) returns (SearchBlocksResponse) {
+    option (google.api.http) = {
+      get: "/v1/blocks/search"
+    };
+  }
+
+  // Install a block from a source (HTTP URL, OCI ref, or inline WASM).
+  rpc InstallBlock(InstallBlockRequest) returns (InstallBlockResponse) {
+    option (google.api.http) = {
+      post: "/v1/blocks"
+      body: "*"
+    };
+  }
+
+  // Uninstall a block.
+  rpc UninstallBlock(UninstallBlockRequest) returns (UninstallBlockResponse) {
+    option (google.api.http) = {
+      delete: "/v1/blocks/{block_id}"
+    };
+  }
+}
+
+// =============================================================================
+// Block metadata
+// =============================================================================
+
+// Block metadata — describes an installed block.
+message BlockMetadata {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  string description = 4;
+  BlockType type = 5;
+  // Block author.
+  string author = 6;
+  // Block layer: 0 (primitives), 1 (domain), 2 (enterprise/WASM).
+  uint32 layer = 7;
+  // Block tags for categorization.
+  repeated string tags = 8;
+  // Input schema (JSON Schema).
+  google.protobuf.Struct input_schema = 9;
+  // Output schema (JSON Schema).
+  google.protobuf.Struct output_schema = 10;
+  // Configuration schema (JSON Schema).
+  google.protobuf.Struct config_schema = 11;
+  google.protobuf.Timestamp installed_at = 12;
+  // Whether this is a built-in block (cannot be uninstalled).
+  bool builtin = 13;
+}
+
+// =============================================================================
+// Request / Response messages
+// =============================================================================
+
+message ListBlocksRequest {
+  // Optional: filter by block type.
+  optional BlockType type = 1;
+  // Optional: filter by layer.
+  optional uint32 layer = 2;
+  // Optional: filter by tag.
+  optional string tag = 3;
+  optional uint32 limit = 4;
+  optional uint32 offset = 5;
+}
+
+message ListBlocksResponse {
+  repeated BlockMetadata blocks = 1;
+  uint32 total_count = 2;
+}
+
+message GetBlockRequest {
+  string block_id = 1;
+}
+
+message GetBlockResponse {
+  BlockMetadata block = 1;
+}
+
+message SearchBlocksRequest {
+  // Free-text search query.
+  string query = 1;
+  optional BlockType type = 2;
+  optional uint32 layer = 3;
+  optional uint32 limit = 4;
+}
+
+message SearchBlocksResponse {
+  repeated BlockMetadata blocks = 1;
+  uint32 total_count = 2;
+}
+
+message InstallBlockRequest {
+  // Source URL (HTTP, OCI ref, or file path).
+  string source = 1;
+  BlockType type = 2;
+  // Optional: block configuration defaults.
+  optional google.protobuf.Struct config = 3;
+}
+
+message InstallBlockResponse {
+  BlockMetadata block = 1;
+}
+
+message UninstallBlockRequest {
+  string block_id = 1;
+}
+
+message UninstallBlockResponse {}

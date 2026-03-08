@@ -1,0 +1,399 @@
+// SFLOW CE — Admin Service API.
+//
+// Definition CRUD, namespace management, schedule management,
+// migration plans. Used by sflow-cli and dashboard.
+
+syntax = "proto3";
+
+package sflow.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "sflow/v1/types.proto";
+
+service AdminService {
+  // =========================================================================
+  // Definitions
+  // =========================================================================
+
+  // Register or update a statechart definition.
+  rpc UpsertDefinition(UpsertDefinitionRequest) returns (UpsertDefinitionResponse) {
+    option (google.api.http) = {
+      put: "/v1/namespaces/{namespace}/definitions/{definition_id}"
+      body: "*"
+    };
+  }
+
+  // Get a statechart definition by ID.
+  rpc GetDefinition(GetDefinitionRequest) returns (GetDefinitionResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/definitions/{definition_id}"
+    };
+  }
+
+  // List all definitions in a namespace.
+  rpc ListDefinitions(ListDefinitionsRequest) returns (ListDefinitionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/definitions"
+    };
+  }
+
+  // Delete a definition (only if no active instances).
+  rpc DeleteDefinition(DeleteDefinitionRequest) returns (DeleteDefinitionResponse) {
+    option (google.api.http) = {
+      delete: "/v1/namespaces/{namespace}/definitions/{definition_id}"
+    };
+  }
+
+  // =========================================================================
+  // Namespaces
+  // =========================================================================
+
+  // Create a new namespace.
+  rpc CreateNamespace(CreateNamespaceRequest) returns (CreateNamespaceResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces"
+      body: "*"
+    };
+  }
+
+  // Get namespace by ID.
+  rpc GetNamespace(GetNamespaceRequest) returns (GetNamespaceResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}"
+    };
+  }
+
+  // List all namespaces.
+  rpc ListNamespaces(ListNamespacesRequest) returns (ListNamespacesResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces"
+    };
+  }
+
+  // Update namespace settings (quotas, labels).
+  rpc UpdateNamespace(UpdateNamespaceRequest) returns (UpdateNamespaceResponse) {
+    option (google.api.http) = {
+      patch: "/v1/namespaces/{namespace}"
+      body: "*"
+    };
+  }
+
+  // Archive a namespace (read-only, no new instances).
+  rpc ArchiveNamespace(ArchiveNamespaceRequest) returns (ArchiveNamespaceResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/archive"
+    };
+  }
+
+  // Delete a namespace (permanently, only if archived and empty).
+  rpc DeleteNamespace(DeleteNamespaceRequest) returns (DeleteNamespaceResponse) {
+    option (google.api.http) = {
+      delete: "/v1/namespaces/{namespace}"
+    };
+  }
+
+  // =========================================================================
+  // Schedules
+  // =========================================================================
+
+  // Create a new schedule.
+  rpc CreateSchedule(CreateScheduleRequest) returns (CreateScheduleResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/schedules"
+      body: "*"
+    };
+  }
+
+  // Get a schedule by ID.
+  rpc GetSchedule(GetScheduleRequest) returns (GetScheduleResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/schedules/{schedule_id}"
+    };
+  }
+
+  // List schedules in a namespace.
+  rpc ListSchedules(ListSchedulesRequest) returns (ListSchedulesResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/schedules"
+    };
+  }
+
+  // Update a schedule.
+  rpc UpdateSchedule(UpdateScheduleRequest) returns (UpdateScheduleResponse) {
+    option (google.api.http) = {
+      patch: "/v1/namespaces/{namespace}/schedules/{schedule_id}"
+      body: "*"
+    };
+  }
+
+  // Pause a schedule.
+  rpc PauseSchedule(PauseScheduleRequest) returns (PauseScheduleResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/schedules/{schedule_id}/pause"
+    };
+  }
+
+  // Resume a paused schedule.
+  rpc ResumeSchedule(ResumeScheduleRequest) returns (ResumeScheduleResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/schedules/{schedule_id}/resume"
+    };
+  }
+
+  // Delete a schedule.
+  rpc DeleteSchedule(DeleteScheduleRequest) returns (DeleteScheduleResponse) {
+    option (google.api.http) = {
+      delete: "/v1/namespaces/{namespace}/schedules/{schedule_id}"
+    };
+  }
+
+  // =========================================================================
+  // Migration
+  // =========================================================================
+
+  // Execute a batch migration of workflow instances.
+  rpc MigrateWorkflows(MigrateWorkflowsRequest) returns (MigrateWorkflowsResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/definitions/{definition_id}/migrate"
+      body: "*"
+    };
+  }
+}
+
+// =============================================================================
+// Definition messages
+// =============================================================================
+
+message DefinitionSummary {
+  string id = 1;
+  string version = 2;
+  WorkflowMode mode = 3;
+  uint32 state_count = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  // Number of active instances using this definition.
+  uint64 active_instances = 7;
+}
+
+message UpsertDefinitionRequest {
+  string namespace = 1;
+  string definition_id = 2;
+  // Full statechart definition JSON.
+  StatechartDef definition = 3;
+}
+
+message UpsertDefinitionResponse {
+  string definition_id = 1;
+  string version = 2;
+  // true if created, false if updated.
+  bool created = 3;
+}
+
+message GetDefinitionRequest {
+  string namespace = 1;
+  string definition_id = 2;
+  // Optional: specific version (default: latest).
+  optional string version = 3;
+}
+
+message GetDefinitionResponse {
+  StatechartDef definition = 1;
+}
+
+message ListDefinitionsRequest {
+  string namespace = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListDefinitionsResponse {
+  repeated DefinitionSummary definitions = 1;
+  uint32 total_count = 2;
+}
+
+message DeleteDefinitionRequest {
+  string namespace = 1;
+  string definition_id = 2;
+}
+
+message DeleteDefinitionResponse {}
+
+// =============================================================================
+// Namespace messages
+// =============================================================================
+
+message CreateNamespaceRequest {
+  string namespace = 1;
+  string display_name = 2;
+  optional NamespaceQuotas quotas = 3;
+  map<string, string> labels = 4;
+}
+
+message CreateNamespaceResponse {
+  Namespace namespace = 1;
+}
+
+message GetNamespaceRequest {
+  string namespace = 1;
+}
+
+message GetNamespaceResponse {
+  Namespace namespace = 1;
+}
+
+message ListNamespacesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+}
+
+message ListNamespacesResponse {
+  repeated Namespace namespaces = 1;
+  uint32 total_count = 2;
+}
+
+message UpdateNamespaceRequest {
+  string namespace = 1;
+  optional string display_name = 2;
+  optional NamespaceQuotas quotas = 3;
+  map<string, string> labels = 4;
+}
+
+message UpdateNamespaceResponse {
+  Namespace namespace = 1;
+}
+
+message ArchiveNamespaceRequest {
+  string namespace = 1;
+}
+
+message ArchiveNamespaceResponse {}
+
+message DeleteNamespaceRequest {
+  string namespace = 1;
+}
+
+message DeleteNamespaceResponse {}
+
+// =============================================================================
+// Schedule messages
+// =============================================================================
+
+message CreateScheduleRequest {
+  string namespace = 1;
+  string name = 2;
+  string definition_id = 3;
+  string cron = 4;
+  optional uint64 jitter_ms = 5;
+  optional OverlapPolicy overlap_policy = 6;
+  optional bool backfill = 7;
+  optional uint32 max_backfill = 8;
+  google.protobuf.Struct context = 9;
+  map<string, google.protobuf.Value> search_attributes = 10;
+}
+
+message CreateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message GetScheduleRequest {
+  string namespace = 1;
+  string schedule_id = 2;
+}
+
+message GetScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message ListSchedulesRequest {
+  string namespace = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListSchedulesResponse {
+  repeated Schedule schedules = 1;
+  uint32 total_count = 2;
+}
+
+message UpdateScheduleRequest {
+  string namespace = 1;
+  string schedule_id = 2;
+  optional string cron = 3;
+  optional uint64 jitter_ms = 4;
+  optional OverlapPolicy overlap_policy = 5;
+  optional bool backfill = 6;
+  optional uint32 max_backfill = 7;
+  optional google.protobuf.Struct context = 8;
+}
+
+message UpdateScheduleResponse {
+  Schedule schedule = 1;
+}
+
+message PauseScheduleRequest {
+  string namespace = 1;
+  string schedule_id = 2;
+}
+
+message PauseScheduleResponse {}
+
+message ResumeScheduleRequest {
+  string namespace = 1;
+  string schedule_id = 2;
+}
+
+message ResumeScheduleResponse {}
+
+message DeleteScheduleRequest {
+  string namespace = 1;
+  string schedule_id = 2;
+}
+
+message DeleteScheduleResponse {}
+
+// =============================================================================
+// Migration messages
+// =============================================================================
+
+message MigrateWorkflowsRequest {
+  string namespace = 1;
+  string definition_id = 2;
+  MigrationPlan plan = 3;
+  // Filter: which statuses to migrate (default: ACTIVE, SLEEPING).
+  repeated InstanceStatus statuses = 4;
+  // If true, report what would happen without actually migrating.
+  bool dry_run = 5;
+  // Number of instances to process per batch.
+  uint32 batch_size = 6;
+}
+
+message MigrateWorkflowsResponse {
+  string migration_id = 1;
+  MigrationSummary summary = 2;
+  repeated InstanceMigrationResult results = 3;
+}
+
+message MigrationSummary {
+  uint32 total = 1;
+  uint32 migrated = 2;
+  uint32 skipped = 3;
+  uint32 failed = 4;
+}
+
+message InstanceMigrationResult {
+  string instance_id = 1;
+  MigrationStatus status = 2;
+  optional string error = 3;
+}
+
+enum MigrationStatus {
+  MIGRATION_STATUS_UNSPECIFIED = 0;
+  MIGRATION_STATUS_MIGRATED = 1;
+  MIGRATION_STATUS_SKIPPED_VERSION_MISMATCH = 2;
+  MIGRATION_STATUS_SKIPPED_STATUS = 3;
+  MIGRATION_STATUS_DRY_RUN_WOULD_MIGRATE = 4;
+  MIGRATION_STATUS_DRY_RUN_WOULD_FAIL = 5;
+  MIGRATION_STATUS_FAILED = 6;
+}

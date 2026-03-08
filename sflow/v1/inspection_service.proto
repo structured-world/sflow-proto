@@ -1,0 +1,129 @@
+// SFLOW CE — Inspection Service API.
+//
+// Live state streaming and debug protocol for workflow instances.
+// Used by dashboard and xstate Inspector integration.
+
+syntax = "proto3";
+
+package sflow.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "sflow/v1/types.proto";
+
+service InspectionService {
+  // Subscribe to live state changes for a workflow instance.
+  // Server-streaming RPC — sends updates as they happen.
+  rpc WatchInstance(WatchInstanceRequest) returns (stream WatchInstanceResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/workflows/{instance_id}/watch"
+    };
+  }
+
+  // Subscribe to all state changes in a namespace.
+  rpc WatchNamespace(WatchNamespaceRequest) returns (stream WatchNamespaceResponse) {
+    option (google.api.http) = {
+      get: "/v1/namespaces/{namespace}/watch"
+    };
+  }
+
+  // Debug: inject an event into a paused/suspended instance.
+  rpc InjectEvent(InjectEventRequest) returns (InjectEventResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/debug/inject"
+      body: "*"
+    };
+  }
+
+  // Debug: modify context of a suspended instance.
+  rpc ModifyContext(ModifyContextRequest) returns (ModifyContextResponse) {
+    option (google.api.http) = {
+      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/debug/context"
+      body: "*"
+    };
+  }
+}
+
+// =============================================================================
+// Watch messages
+// =============================================================================
+
+message WatchInstanceRequest {
+  string namespace = 1;
+  string instance_id = 2;
+  // If true, send current state as first message before streaming updates.
+  bool include_initial = 3;
+}
+
+message WatchInstanceResponse {
+  // Type of update.
+  WatchEventType event_type = 1;
+  // Current state after update.
+  StateConfiguration current_state = 2;
+  // Current context after update.
+  google.protobuf.Struct context = 3;
+  // Instance status after update.
+  InstanceStatus status = 4;
+  // The event record that caused this update.
+  optional EventRecord record = 5;
+  // Server timestamp.
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+message WatchNamespaceRequest {
+  string namespace = 1;
+  // Optional: filter by definition ID.
+  optional string definition_id = 2;
+  // Optional: filter by status.
+  optional InstanceStatus status = 3;
+}
+
+message WatchNamespaceResponse {
+  string instance_id = 1;
+  string definition_id = 2;
+  WatchEventType event_type = 3;
+  InstanceStatus status = 4;
+  StateConfiguration current_state = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+enum WatchEventType {
+  WATCH_EVENT_TYPE_UNSPECIFIED = 0;
+  // Initial state snapshot (when include_initial = true).
+  WATCH_EVENT_TYPE_INITIAL = 1;
+  // State transition occurred.
+  WATCH_EVENT_TYPE_TRANSITION = 2;
+  // Context updated without state change.
+  WATCH_EVENT_TYPE_CONTEXT_UPDATE = 3;
+  // Instance status changed (active→sleeping, etc.).
+  WATCH_EVENT_TYPE_STATUS_CHANGE = 4;
+  // Instance completed or failed.
+  WATCH_EVENT_TYPE_TERMINATED = 5;
+}
+
+// =============================================================================
+// Debug messages
+// =============================================================================
+
+message InjectEventRequest {
+  string namespace = 1;
+  string instance_id = 2;
+  WorkflowEvent event = 3;
+}
+
+message InjectEventResponse {
+  TransitionResult result = 1;
+}
+
+message ModifyContextRequest {
+  string namespace = 1;
+  string instance_id = 2;
+  // JSON patch to apply to context.
+  google.protobuf.Struct context_patch = 3;
+}
+
+message ModifyContextResponse {
+  // Context after modification.
+  google.protobuf.Struct context = 1;
+}
