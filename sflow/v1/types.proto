@@ -222,6 +222,8 @@ message WorkflowInstance {
   optional ActorAddress parent = 17;
   // Chain to previous instance (for continue-as-new).
   optional string continue_chain = 18;  // UUID
+  // Active child instance IDs (spawned via workflow:// invoke).
+  repeated string child_ids = 19;
 }
 
 // Helper for state_history map values.
@@ -310,6 +312,10 @@ message StatechartDef {
   optional string sflow_namespace = 9;
   map<string, BlockRef> sflow_blocks = 10;
   optional RetentionPolicy sflow_retention = 11;
+  // Flow traits — classification metadata for routing and validation.
+  optional FlowTraits traits = 12;
+  // JSON Schema for input/output/context validation.
+  optional WorkflowSchema schema = 13;
 }
 
 // Definition of a single state within a statechart.
@@ -440,6 +446,8 @@ message InvokeDef {
   string on_done = 2;
   optional string on_error = 3;
   optional google.protobuf.Struct input = 4;
+  // Child workflow configuration (only for src = "workflow://...").
+  optional ChildWorkflowConfig child_config = 5;
 }
 
 // Multi-instance (for-each) invocation.
@@ -451,6 +459,24 @@ message InvokeEachDef {
   bool parallel = 3;
   string on_all_done = 4;
   optional string on_any_error = 5;
+  // Child workflow configuration (only for src = "workflow://...").
+  optional ChildWorkflowConfig child_config = 6;
+}
+
+// Configuration for child workflow dispatch (invoke.src = "workflow://...").
+message ChildWorkflowConfig {
+  // Namespace to spawn child in (default: parent's namespace).
+  optional string namespace = 1;
+  // Supervision strategy on child failure.
+  SupervisionStrategy supervision = 2;
+  // Maximum retries for supervision_restart.
+  uint32 max_retries = 3;
+  // Timeout for child completion.
+  optional google.protobuf.Duration timeout = 4;
+  // Correlation key expression (CEL) for parent→child linking.
+  optional string correlation_key = 5;
+  // Child definition version (default: latest).
+  optional string definition_version = 6;
 }
 
 // Escalation rules for a state.
@@ -612,4 +638,168 @@ message SearchQuery {
   optional google.protobuf.Timestamp created_before = 7;
   optional google.protobuf.Timestamp updated_after = 8;
   optional google.protobuf.Timestamp updated_before = 9;
+}
+
+// =============================================================================
+// Flow Traits — classification metadata for routing and validation
+// =============================================================================
+
+// Workflow execution mode.
+enum ExecutionMode {
+  EXECUTION_MODE_UNSPECIFIED = 0;
+  // Request-response.
+  EXECUTION_MODE_SYNC = 1;
+  // Fire-and-forget (default).
+  EXECUTION_MODE_ASYNC = 2;
+  // Continuous processing.
+  EXECUTION_MODE_STREAMING = 3;
+}
+
+// Idempotency mode.
+enum IdempotencyMode {
+  IDEMPOTENCY_MODE_UNSPECIFIED = 0;
+  // No deduplication.
+  IDEMPOTENCY_MODE_NONE = 1;
+  // Deduplicate by CEL key expression.
+  IDEMPOTENCY_MODE_BY_KEY = 2;
+  // Only one active instance per definition.
+  IDEMPOTENCY_MODE_SINGLETON = 3;
+}
+
+// Reversibility level.
+enum Reversibility {
+  REVERSIBILITY_UNSPECIFIED = 0;
+  // No compensation possible.
+  REVERSIBILITY_IRREVERSIBLE = 1;
+  // Full saga compensation.
+  REVERSIBILITY_COMPENSABLE = 2;
+  // Some steps compensable.
+  REVERSIBILITY_PARTIAL = 3;
+  // Checkpoint-based rollback.
+  REVERSIBILITY_CHECKPOINT = 4;
+}
+
+// Delivery guarantee — maps to NATS JetStream AckPolicy.
+enum DeliveryMode {
+  DELIVERY_MODE_UNSPECIFIED = 0;
+  // Fire-and-forget. AckPolicy::None, MaxDeliver: 1.
+  DELIVERY_MODE_AT_MOST_ONCE = 1;
+  // Retry until acknowledged. AckPolicy::Explicit (default).
+  DELIVERY_MODE_AT_LEAST_ONCE = 2;
+  // Deduplication + idempotent. Nats-Msg-Id per task assignment.
+  DELIVERY_MODE_EXACTLY_ONCE = 3;
+}
+
+// Flow priority.
+enum FlowPriority {
+  FLOW_PRIORITY_UNSPECIFIED = 0;
+  FLOW_PRIORITY_LOW = 1;
+  FLOW_PRIORITY_NORMAL = 2;
+  FLOW_PRIORITY_HIGH = 3;
+  // EE only.
+  FLOW_PRIORITY_CRITICAL = 4;
+}
+
+// Flow category (operational classification).
+enum FlowCategory {
+  FLOW_CATEGORY_UNSPECIFIED = 0;
+  FLOW_CATEGORY_ORCHESTRATION = 1;
+  FLOW_CATEGORY_SAGA = 2;
+  FLOW_CATEGORY_PIPELINE = 3;
+  FLOW_CATEGORY_EVENT_HANDLER = 4;
+  FLOW_CATEGORY_SCHEDULED = 5;
+  FLOW_CATEGORY_STREAM = 6;
+  FLOW_CATEGORY_HUMAN_TASK = 7;
+}
+
+// Classification metadata for a workflow definition.
+message FlowTraits {
+  ExecutionMode execution = 1;
+  IdempotencyMode idempotency = 2;
+  // CEL expression for idempotency key (required when idempotency = BY_KEY).
+  optional string idempotency_key_expr = 3;
+  Reversibility reversibility = 4;
+  // Delivery guarantee (maps to DeliveryMode).
+  DeliveryMode consistency = 5;
+  FlowPriority priority = 6;
+  FlowCategory category = 7;
+}
+
+// =============================================================================
+// Workflow Schemas (Typed Workflows)
+// =============================================================================
+
+// JSON Schema definitions for workflow input/output/context validation.
+message WorkflowSchema {
+  // JSON Schema Draft 2020-12 for workflow input validation.
+  optional google.protobuf.Struct input_schema = 1;
+  // JSON Schema Draft 2020-12 for workflow output validation.
+  optional google.protobuf.Struct output_schema = 2;
+  // JSON Schema Draft 2020-12 for runtime context validation.
+  optional google.protobuf.Struct context_schema = 3;
+}
+
+// =============================================================================
+// Block Wizard System
+// =============================================================================
+
+// Wizard field type.
+enum WizardFieldType {
+  WIZARD_FIELD_TYPE_UNSPECIFIED = 0;
+  WIZARD_FIELD_TYPE_STRING = 1;
+  WIZARD_FIELD_TYPE_NUMBER = 2;
+  WIZARD_FIELD_TYPE_BOOLEAN = 3;
+  WIZARD_FIELD_TYPE_SELECT = 4;
+  WIZARD_FIELD_TYPE_SECRET = 5;
+  WIZARD_FIELD_TYPE_JSON = 6;
+  // CEL expression input.
+  WIZARD_FIELD_TYPE_CEL = 7;
+  // Template string with variables.
+  WIZARD_FIELD_TYPE_TEMPLATE = 8;
+}
+
+// A single field in a wizard step.
+message WizardField {
+  // Field key (maps to config key).
+  string key = 1;
+  // Human-readable label.
+  string label = 2;
+  // Field type.
+  WizardFieldType field_type = 3;
+  // Whether the field is required.
+  bool required = 4;
+  // Default value.
+  optional string default_value = 5;
+  // Help text / description.
+  optional string description = 6;
+  // Validation: CEL expression that must evaluate to true.
+  optional string validation_expr = 7;
+  // For SELECT: list of option values.
+  repeated string options = 8;
+  // Placeholder text.
+  optional string placeholder = 9;
+  // Condition: CEL expression — field shown only if true.
+  optional string visible_when = 10;
+}
+
+// A step / section in a wizard form.
+message WizardStep {
+  // Step title.
+  string title = 1;
+  // Step description.
+  optional string description = 2;
+  // Fields in this step.
+  repeated WizardField fields = 3;
+}
+
+// Complete wizard definition for a block's configuration.
+message WizardDefinition {
+  // Block ID this wizard belongs to.
+  string block_id = 1;
+  // Wizard title.
+  string title = 2;
+  // Wizard description.
+  optional string description = 3;
+  // Wizard steps (sections).
+  repeated WizardStep steps = 4;
 }

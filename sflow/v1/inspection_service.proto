@@ -100,6 +100,8 @@ enum WatchEventType {
   WATCH_EVENT_TYPE_STATUS_CHANGE = 4;
   // Instance completed or failed.
   WATCH_EVENT_TYPE_TERMINATED = 5;
+  // An event was recorded in history (timer fired, activity started/completed, etc.).
+  WATCH_EVENT_TYPE_EVENT_RECORDED = 6;
 }
 
 // =============================================================================

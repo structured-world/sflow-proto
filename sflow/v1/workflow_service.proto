@@ -101,6 +101,13 @@ service WorkflowService {
       get: "/v1/namespaces/{namespace}/workflows/{instance_id}/history"
     };
   }
+
+  // Delete a terminated workflow instance (admin action; rejects active instances).
+  rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse) {
+    option (google.api.http) = {
+      delete: "/v1/namespaces/{namespace}/workflows/{instance_id}"
+    };
+  }
 }
 
 // =============================================================================
@@ -240,3 +247,10 @@ message GetHistoryRequest {
 message GetHistoryResponse {
   repeated EventRecord events = 1;
 }
+
+message DeleteWorkflowRequest {
+  string namespace = 1;
+  string instance_id = 2;
+}
+
+message DeleteWorkflowResponse {}

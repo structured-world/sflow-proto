@@ -175,6 +175,10 @@ message DefinitionSummary {
   google.protobuf.Timestamp updated_at = 6;
   // Number of active instances using this definition.
   uint64 active_instances = 7;
+  // Flow traits classification.
+  optional FlowTraits traits = 8;
+  // Workflow I/O schemas.
+  optional WorkflowSchema schema = 9;
 }
 
 message UpsertDefinitionRequest {

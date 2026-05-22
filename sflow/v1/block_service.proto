@@ -55,7 +55,7 @@ service BlockService {
 // Block metadata
 // =============================================================================
 
-// Block metadata — describes an installed block.
+// Block metadata — describes an installed block with typed ports.
 message BlockMetadata {
   string id = 1;
   string name = 2;
@@ -68,15 +68,68 @@ message BlockMetadata {
   uint32 layer = 7;
   // Block tags for categorization.
   repeated string tags = 8;
-  // Input schema (JSON Schema).
-  google.protobuf.Struct input_schema = 9;
-  // Output schema (JSON Schema).
-  google.protobuf.Struct output_schema = 10;
+  // Typed input port definitions.
+  repeated InputPortDef input_ports = 9;
+  // Typed output port definitions.
+  repeated OutputPortDef output_ports = 10;
   // Configuration schema (JSON Schema).
   google.protobuf.Struct config_schema = 11;
   google.protobuf.Timestamp installed_at = 12;
   // Whether this is a built-in block (cannot be uninstalled).
   bool builtin = 13;
+  // Possible execution outcomes (for visual editor routing).
+  repeated OutcomeDef outcomes = 14;
+  // Wizard definition — guided configuration UI for this block.
+  optional WizardDefinition wizard_definition = 15;
+}
+
+// Input port definition — named, typed connection point.
+message InputPortDef {
+  // Port name, unique within block (e.g., "document_image").
+  string name = 1;
+  // Nominal type: "STRING", "INT", "FLOAT", "BOOL", "BINARY", "JSON", etc.
+  string port_type = 2;
+  // Whether this port must be connected or have a default value.
+  bool required = 3;
+  // Default value when port is not connected.
+  optional google.protobuf.Value default_value = 4;
+  // Additional compatible types beyond exact port_type match.
+  repeated string accepts = 5;
+  // Widget hint for inline UI editing (JSON: { "type": "select", "options": [...] }).
+  optional google.protobuf.Struct widget = 6;
+  // JSON Schema for runtime value validation.
+  optional google.protobuf.Struct schema = 7;
+}
+
+// Output port role.
+enum OutputRole {
+  OUTPUT_ROLE_UNSPECIFIED = 0;
+  // Always produced on successful execution.
+  OUTPUT_ROLE_DATA = 1;
+  // Produced only in specific outcomes (used for routing).
+  OUTPUT_ROLE_CONDITIONAL = 2;
+}
+
+// Output port definition — named, typed output connection point.
+message OutputPortDef {
+  // Port name, unique within block (e.g., "payment_id").
+  string name = 1;
+  // Nominal type.
+  string port_type = 2;
+  // Role: "data" (always produced) or "conditional" (only in specific outcomes).
+  OutputRole role = 3;
+  // JSON Schema for runtime value validation.
+  optional google.protobuf.Struct schema = 4;
+}
+
+// Outcome definition — named execution scenario for visual editor routing.
+message OutcomeDef {
+  // Outcome name (e.g., "success", "requires_3ds", "declined").
+  string name = 1;
+  // Human-readable description for UI.
+  string description = 2;
+  // Which output port names are populated in this outcome.
+  repeated string outputs = 3;
 }
 
 // =============================================================================
