@@ -38,9 +38,7 @@ service WorkflowService {
 
   // Query workflow state (read-only, no state change).
   rpc QueryWorkflow(QueryWorkflowRequest) returns (QueryWorkflowResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/workflows/{instance_id}/query/{query_name}"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/workflows/{instance_id}/query/{query_name}"};
   }
 
   // Send a signal (broadcast) to all matching workflows in a namespace.
@@ -61,9 +59,7 @@ service WorkflowService {
 
   // Get full workflow instance state.
   rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/workflows/{instance_id}"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/workflows/{instance_id}"};
   }
 
   // Search workflow instances by attributes.
@@ -76,37 +72,27 @@ service WorkflowService {
 
   // Suspend a workflow instance (admin action).
   rpc SuspendWorkflow(SuspendWorkflowRequest) returns (SuspendWorkflowResponse) {
-    option (google.api.http) = {
-      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/suspend"
-    };
+    option (google.api.http) = {post: "/v1/namespaces/{namespace}/workflows/{instance_id}/suspend"};
   }
 
   // Resume a suspended workflow instance.
   rpc ResumeWorkflow(ResumeWorkflowRequest) returns (ResumeWorkflowResponse) {
-    option (google.api.http) = {
-      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/resume"
-    };
+    option (google.api.http) = {post: "/v1/namespaces/{namespace}/workflows/{instance_id}/resume"};
   }
 
   // Cancel a workflow instance.
   rpc CancelWorkflow(CancelWorkflowRequest) returns (CancelWorkflowResponse) {
-    option (google.api.http) = {
-      post: "/v1/namespaces/{namespace}/workflows/{instance_id}/cancel"
-    };
+    option (google.api.http) = {post: "/v1/namespaces/{namespace}/workflows/{instance_id}/cancel"};
   }
 
   // Get event history for a workflow instance.
   rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/workflows/{instance_id}/history"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/workflows/{instance_id}/history"};
   }
 
   // Delete a terminated workflow instance (admin action; rejects active instances).
   rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse) {
-    option (google.api.http) = {
-      delete: "/v1/namespaces/{namespace}/workflows/{instance_id}"
-    };
+    option (google.api.http) = {delete: "/v1/namespaces/{namespace}/workflows/{instance_id}"};
   }
 }
 

@@ -1,8 +1,6 @@
-// SFLOW CE — Block Service API.
+// SFLOW — Block Service API.
 //
-// Block management: install, list, search blocks in the local registry.
-// CE: built-in blocks only (Layer 0 + Layer 1).
-// EE: extends with WASM plugin blocks and marketplace (sflow/ee/v1/).
+// Block management: install, list, search blocks in the server's local registry.
 
 syntax = "proto3";
 
@@ -16,23 +14,17 @@ import "sflow/v1/types.proto";
 service BlockService {
   // List installed blocks.
   rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse) {
-    option (google.api.http) = {
-      get: "/v1/blocks"
-    };
+    option (google.api.http) = {get: "/v1/blocks"};
   }
 
   // Get block metadata by ID.
   rpc GetBlock(GetBlockRequest) returns (GetBlockResponse) {
-    option (google.api.http) = {
-      get: "/v1/blocks/{block_id}"
-    };
+    option (google.api.http) = {get: "/v1/blocks/{block_id}"};
   }
 
   // Search blocks by query.
   rpc SearchBlocks(SearchBlocksRequest) returns (SearchBlocksResponse) {
-    option (google.api.http) = {
-      get: "/v1/blocks/search"
-    };
+    option (google.api.http) = {get: "/v1/blocks/search"};
   }
 
   // Install a block from a source (HTTP URL, OCI ref, or inline WASM).
@@ -45,9 +37,7 @@ service BlockService {
 
   // Uninstall a block.
   rpc UninstallBlock(UninstallBlockRequest) returns (UninstallBlockResponse) {
-    option (google.api.http) = {
-      delete: "/v1/blocks/{block_id}"
-    };
+    option (google.api.http) = {delete: "/v1/blocks/{block_id}"};
   }
 }
 
@@ -64,7 +54,7 @@ message BlockMetadata {
   BlockType type = 5;
   // Block author.
   string author = 6;
-  // Block layer: 0 (primitives), 1 (domain), 2 (enterprise/WASM).
+  // Block layer: 0 (primitives), 1 (domain), 2 (extension packages).
   uint32 layer = 7;
   // Block tags for categorization.
   repeated string tags = 8;
