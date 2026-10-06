@@ -181,6 +181,9 @@ enum EventRecordType {
   EVENT_RECORD_TYPE_CHILD_RESTARTED = 24;
   // Instance cancelled.
   EVENT_RECORD_TYPE_CANCELLED = 25;
+  // A delayed transition's deadline could not be recovered from the stored
+  // snapshot, so that wait will not fire.
+  EVENT_RECORD_TYPE_TIMER_LOST = 26;
 }
 
 // Schedule overlap policy.
