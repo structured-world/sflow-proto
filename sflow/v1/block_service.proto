@@ -14,23 +14,17 @@ import "sflow/v1/types.proto";
 service BlockService {
   // List installed blocks.
   rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse) {
-    option (google.api.http) = {
-      get: "/v1/blocks"
-    };
+    option (google.api.http) = {get: "/v1/blocks"};
   }
 
   // Get block metadata by ID.
   rpc GetBlock(GetBlockRequest) returns (GetBlockResponse) {
-    option (google.api.http) = {
-      get: "/v1/blocks/{block_id}"
-    };
+    option (google.api.http) = {get: "/v1/blocks/{block_id}"};
   }
 
   // Search blocks by query.
   rpc SearchBlocks(SearchBlocksRequest) returns (SearchBlocksResponse) {
-    option (google.api.http) = {
-      get: "/v1/blocks/search"
-    };
+    option (google.api.http) = {get: "/v1/blocks/search"};
   }
 
   // Install a block from a source (HTTP URL, OCI ref, or inline WASM).
@@ -43,9 +37,7 @@ service BlockService {
 
   // Uninstall a block.
   rpc UninstallBlock(UninstallBlockRequest) returns (UninstallBlockResponse) {
-    option (google.api.http) = {
-      delete: "/v1/blocks/{block_id}"
-    };
+    option (google.api.http) = {delete: "/v1/blocks/{block_id}"};
   }
 }
 

@@ -8,9 +8,9 @@ syntax = "proto3";
 
 package sflow.v1;
 
+import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/duration.proto";
 
 // =============================================================================
 // Identifiers
@@ -33,14 +33,14 @@ message IdentityRef {
 // Logical actor address: {instance_id}/{actor_path}.
 // Stable across restarts, migrations, scaling.
 message ActorAddress {
-  string instance_id = 1;  // UUID
-  string actor_path = 2;   // hierarchical path, e.g., "root.worker.0"
+  string instance_id = 1; // UUID
+  string actor_path = 2; // hierarchical path, e.g., "root.worker.0"
 }
 
 // Correlation key for message routing by business identifier.
 message CorrelationKey {
-  string name = 1;   // e.g., "order_id", "customer_id"
-  string value = 2;  // e.g., "order-789"
+  string name = 1; // e.g., "order_id", "customer_id"
+  string value = 2; // e.g., "order-789"
 }
 
 // =============================================================================
@@ -93,12 +93,12 @@ enum Priority {
 // Search attribute type declaration.
 enum SearchAttrType {
   SEARCH_ATTR_TYPE_UNSPECIFIED = 0;
-  SEARCH_ATTR_TYPE_KEYWORD = 1;   // exact match: status, region
-  SEARCH_ATTR_TYPE_TEXT = 2;      // full-text: error_message
-  SEARCH_ATTR_TYPE_INT = 3;       // numeric: amount, retry_count
-  SEARCH_ATTR_TYPE_DOUBLE = 4;    // decimal: price
-  SEARCH_ATTR_TYPE_DATETIME = 5;  // timestamp: due_date
-  SEARCH_ATTR_TYPE_BOOL = 6;      // boolean: is_escalated
+  SEARCH_ATTR_TYPE_KEYWORD = 1; // exact match: status, region
+  SEARCH_ATTR_TYPE_TEXT = 2; // full-text: error_message
+  SEARCH_ATTR_TYPE_INT = 3; // numeric: amount, retry_count
+  SEARCH_ATTR_TYPE_DOUBLE = 4; // decimal: price
+  SEARCH_ATTR_TYPE_DATETIME = 5; // timestamp: due_date
+  SEARCH_ATTR_TYPE_BOOL = 6; // boolean: is_escalated
 }
 
 // State type discriminator.
@@ -142,10 +142,10 @@ enum SupervisionStrategy {
 // Block type discriminator.
 enum BlockType {
   BLOCK_TYPE_UNSPECIFIED = 0;
-  BLOCK_TYPE_WASM = 1;       // WebAssembly plugin
-  BLOCK_TYPE_CONTAINER = 2;  // OCI container
-  BLOCK_TYPE_GRPC = 3;       // gRPC service
-  BLOCK_TYPE_HTTP = 4;       // HTTP webhook
+  BLOCK_TYPE_WASM = 1; // WebAssembly plugin
+  BLOCK_TYPE_CONTAINER = 2; // OCI container
+  BLOCK_TYPE_GRPC = 3; // gRPC service
+  BLOCK_TYPE_HTTP = 4; // HTTP webhook
 }
 
 // Types of event history records.
@@ -231,7 +231,7 @@ enum NamespacePermission {
 
 // A running workflow instance — full state snapshot.
 message WorkflowInstance {
-  string instance_id = 1;  // UUID
+  string instance_id = 1; // UUID
   NamespaceId namespace = 2;
   string definition_id = 3;
   string definition_version = 4;
@@ -252,7 +252,7 @@ message WorkflowInstance {
   // Parent actor address (if spawned as child).
   optional ActorAddress parent = 17;
   // Chain to previous instance (for continue-as-new).
-  optional string continue_chain = 18;  // UUID
+  optional string continue_chain = 18; // UUID
   // Active child instance IDs (spawned via workflow:// invoke).
   repeated string child_ids = 19;
 }
@@ -270,7 +270,7 @@ message StateConfiguration {
 
 // Summary of a workflow instance (for search results).
 message WorkflowSummary {
-  string instance_id = 1;  // UUID
+  string instance_id = 1; // UUID
   NamespaceId namespace = 2;
   string definition_id = 3;
   string definition_version = 4;
@@ -456,7 +456,7 @@ message StructuredAction {
 
 message AssignAction {
   string path = 1;
-  string expr = 2;  // CEL expression
+  string expr = 2; // CEL expression
 }
 
 message SendToAction {
@@ -566,7 +566,7 @@ message RetentionPolicy {
 
 // A schedule definition — when and how to create workflow instances.
 message Schedule {
-  string id = 1;  // UUID
+  string id = 1; // UUID
   string name = 2;
   NamespaceId namespace = 3;
   string definition_id = 4;
@@ -610,7 +610,7 @@ message Namespace {
 
 // Resource quotas for a namespace.
 message NamespaceQuotas {
-  uint64 max_instances = 1;            // 0 = unlimited
+  uint64 max_instances = 1; // 0 = unlimited
   uint64 max_definitions = 2;
   uint64 max_state_changes_month = 3;
   uint64 max_history_per_instance = 4;
@@ -655,7 +655,7 @@ message ActorMessage {
   ActorAddress from = 1;
   ActorAddress to = 2;
   google.protobuf.Struct payload = 3;
-  string idempotency_key = 4;  // UUID
+  string idempotency_key = 4; // UUID
   Priority priority = 5;
   optional google.protobuf.Duration ttl = 6;
   optional ActorAddress reply_to = 7;

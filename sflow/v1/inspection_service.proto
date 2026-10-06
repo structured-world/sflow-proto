@@ -16,16 +16,12 @@ service InspectionService {
   // Subscribe to live state changes for a workflow instance.
   // Server-streaming RPC — sends updates as they happen.
   rpc WatchInstance(WatchInstanceRequest) returns (stream WatchInstanceResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/workflows/{instance_id}/watch"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/workflows/{instance_id}/watch"};
   }
 
   // Subscribe to all state changes in a namespace.
   rpc WatchNamespace(WatchNamespaceRequest) returns (stream WatchNamespaceResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/watch"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/watch"};
   }
 
   // Debug: inject an event into a paused/suspended instance.

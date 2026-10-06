@@ -27,23 +27,17 @@ service AdminService {
 
   // Get a statechart definition by ID.
   rpc GetDefinition(GetDefinitionRequest) returns (GetDefinitionResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/definitions/{definition_id}"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/definitions/{definition_id}"};
   }
 
   // List all definitions in a namespace.
   rpc ListDefinitions(ListDefinitionsRequest) returns (ListDefinitionsResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/definitions"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/definitions"};
   }
 
   // Delete a definition (only if no active instances).
   rpc DeleteDefinition(DeleteDefinitionRequest) returns (DeleteDefinitionResponse) {
-    option (google.api.http) = {
-      delete: "/v1/namespaces/{namespace}/definitions/{definition_id}"
-    };
+    option (google.api.http) = {delete: "/v1/namespaces/{namespace}/definitions/{definition_id}"};
   }
 
   // =========================================================================
@@ -60,16 +54,12 @@ service AdminService {
 
   // Get namespace by ID.
   rpc GetNamespace(GetNamespaceRequest) returns (GetNamespaceResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}"};
   }
 
   // List all namespaces.
   rpc ListNamespaces(ListNamespacesRequest) returns (ListNamespacesResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces"
-    };
+    option (google.api.http) = {get: "/v1/namespaces"};
   }
 
   // Update namespace settings (quotas, labels).
@@ -82,16 +72,12 @@ service AdminService {
 
   // Archive a namespace (read-only, no new instances).
   rpc ArchiveNamespace(ArchiveNamespaceRequest) returns (ArchiveNamespaceResponse) {
-    option (google.api.http) = {
-      post: "/v1/namespaces/{namespace}/archive"
-    };
+    option (google.api.http) = {post: "/v1/namespaces/{namespace}/archive"};
   }
 
   // Delete a namespace (permanently, only if archived and empty).
   rpc DeleteNamespace(DeleteNamespaceRequest) returns (DeleteNamespaceResponse) {
-    option (google.api.http) = {
-      delete: "/v1/namespaces/{namespace}"
-    };
+    option (google.api.http) = {delete: "/v1/namespaces/{namespace}"};
   }
 
   // =========================================================================
@@ -108,16 +94,12 @@ service AdminService {
 
   // Get a schedule by ID.
   rpc GetSchedule(GetScheduleRequest) returns (GetScheduleResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/schedules/{schedule_id}"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/schedules/{schedule_id}"};
   }
 
   // List schedules in a namespace.
   rpc ListSchedules(ListSchedulesRequest) returns (ListSchedulesResponse) {
-    option (google.api.http) = {
-      get: "/v1/namespaces/{namespace}/schedules"
-    };
+    option (google.api.http) = {get: "/v1/namespaces/{namespace}/schedules"};
   }
 
   // Update a schedule.
@@ -130,23 +112,17 @@ service AdminService {
 
   // Pause a schedule.
   rpc PauseSchedule(PauseScheduleRequest) returns (PauseScheduleResponse) {
-    option (google.api.http) = {
-      post: "/v1/namespaces/{namespace}/schedules/{schedule_id}/pause"
-    };
+    option (google.api.http) = {post: "/v1/namespaces/{namespace}/schedules/{schedule_id}/pause"};
   }
 
   // Resume a paused schedule.
   rpc ResumeSchedule(ResumeScheduleRequest) returns (ResumeScheduleResponse) {
-    option (google.api.http) = {
-      post: "/v1/namespaces/{namespace}/schedules/{schedule_id}/resume"
-    };
+    option (google.api.http) = {post: "/v1/namespaces/{namespace}/schedules/{schedule_id}/resume"};
   }
 
   // Delete a schedule.
   rpc DeleteSchedule(DeleteScheduleRequest) returns (DeleteScheduleResponse) {
-    option (google.api.http) = {
-      delete: "/v1/namespaces/{namespace}/schedules/{schedule_id}"
-    };
+    option (google.api.http) = {delete: "/v1/namespaces/{namespace}/schedules/{schedule_id}"};
   }
 
   // =========================================================================
