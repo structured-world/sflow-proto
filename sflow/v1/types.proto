@@ -111,6 +111,16 @@ enum StateType {
   STATE_TYPE_HISTORY = 5;
 }
 
+// How reaching a final state ends the run.
+enum FinalOutcome {
+  // Not set: the run completes, as with FINAL_OUTCOME_SUCCESS.
+  FINAL_OUTCOME_UNSPECIFIED = 0;
+  // The run ends with status COMPLETED.
+  FINAL_OUTCOME_SUCCESS = 1;
+  // The run ends with status FAILED.
+  FINAL_OUTCOME_FAILURE = 2;
+}
+
 // History state type.
 enum HistoryType {
   HISTORY_TYPE_UNSPECIFIED = 0;
@@ -359,6 +369,8 @@ message StateDef {
   HistoryType history = 11;
   // Escalation rules for this state.
   optional EscalationRules escalation = 12;
+  // Outcome of reaching this state; allowed only when type is STATE_TYPE_FINAL.
+  FinalOutcome outcome = 13;
 }
 
 // Transition target — can be a simple target or conditional array.
@@ -460,12 +472,33 @@ message EscalateAction {
 
 // Service invocation definition.
 message InvokeDef {
+  // Block registry ID, or "workflow://..." for a child workflow.
   string src = 1;
+  // State entered when the invocation succeeds; empty when on_done_guarded
+  // is set.
   string on_done = 2;
+  // Targets guarded by CEL over `outputs.*`, used instead of on_done: the
+  // first match wins and an entry without a guard is the default.
+  repeated OnDoneTransition on_done_guarded = 6;
+  // State entered when the invocation fails; without it the run fails.
   optional string on_error = 3;
+  // Literal value passed as the block's single `input` port; ignored when
+  // input_mapping is set.
   optional google.protobuf.Struct input = 4;
   // Child workflow configuration (only for src = "workflow://...").
   optional ChildWorkflowConfig child_config = 5;
+  // Block input port name → CEL expression evaluated against the context.
+  map<string, string> input_mapping = 7;
+  // Context path → CEL expression evaluated against `outputs.*`.
+  map<string, string> output_mapping = 8;
+}
+
+// A guarded target of a successful invocation.
+message OnDoneTransition {
+  // Target state.
+  string target = 1;
+  // CEL expression over `outputs.*`; absent means always.
+  optional string guard = 2;
 }
 
 // Multi-instance (for-each) invocation.
