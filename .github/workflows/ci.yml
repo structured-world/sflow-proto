@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+      - name: lint
+        run: buf lint
+      - name: format
+        run: buf format --diff --exit-code
+      - name: breaking (against main)
+        if: github.event_name == 'pull_request'
+        run: buf breaking --against ".git#branch=origin/${{ github.base_ref }}"
