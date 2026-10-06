@@ -1,8 +1,6 @@
-// SFLOW CE — Block Service API.
+// SFLOW — Block Service API.
 //
-// Block management: install, list, search blocks in the local registry.
-// CE: built-in blocks only (Layer 0 + Layer 1).
-// EE: extends with WASM plugin blocks and marketplace (sflow/ee/v1/).
+// Block management: install, list, search blocks in the server's local registry.
 
 syntax = "proto3";
 

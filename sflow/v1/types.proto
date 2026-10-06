@@ -16,8 +16,7 @@ import "google/protobuf/duration.proto";
 // Identifiers
 // =============================================================================
 
-// Namespace identifier for multi-tenancy isolation.
-// CE: single namespace ("default"). EE: unlimited.
+// Namespace identifier for multi-tenancy isolation ("default" when unset).
 message NamespaceId {
   string value = 1;
 }
@@ -715,7 +714,7 @@ enum FlowPriority {
   FLOW_PRIORITY_LOW = 1;
   FLOW_PRIORITY_NORMAL = 2;
   FLOW_PRIORITY_HIGH = 3;
-  // EE only.
+  // Highest priority.
   FLOW_PRIORITY_CRITICAL = 4;
 }
 
