@@ -369,8 +369,12 @@ message StateDef {
   HistoryType history = 11;
   // Escalation rules for this state.
   optional EscalationRules escalation = 12;
-  // Outcome of reaching this state; allowed only when type is STATE_TYPE_FINAL.
+  // Outcome of reaching this state; allowed only on a top-level state of
+  // type STATE_TYPE_FINAL, since a nested final completes its parent.
   FinalOutcome outcome = 13;
+  // Transition taken when this compound state's active child is final, or
+  // when every region of this parallel state is done.
+  optional TransitionTarget on_done = 14;
 }
 
 // Transition target — can be a simple target or conditional array.
