@@ -64,7 +64,7 @@ message BlockMetadata {
   BlockType type = 5;
   // Block author.
   string author = 6;
-  // Block layer: 0 (primitives), 1 (domain), 2 (enterprise/WASM).
+  // Block layer: 0 (primitives), 1 (domain), 2 (extension packages).
   uint32 layer = 7;
   // Block tags for categorization.
   repeated string tags = 8;

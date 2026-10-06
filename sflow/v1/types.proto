@@ -53,9 +53,9 @@ enum WorkflowMode {
   WORKFLOW_MODE_UNSPECIFIED = 0;
   // Has final states, completes when reached.
   WORKFLOW_MODE_PROCESS = 1;
-  // No final states, lives indefinitely (entity store pattern, EE).
+  // No final states, lives indefinitely (entity store pattern).
   WORKFLOW_MODE_ENTITY = 2;
-  // Always-active stream consumer, forks children on trigger (EE).
+  // Always-active stream consumer, forks children on trigger.
   WORKFLOW_MODE_STREAM = 3;
 }
 
@@ -76,6 +76,8 @@ enum InstanceStatus {
   INSTANCE_STATUS_SUSPENDED = 6;
   // Being migrated to new version.
   INSTANCE_STATUS_MIGRATING = 7;
+  // Cancelled before reaching a final state.
+  INSTANCE_STATUS_CANCELLED = 8;
 }
 
 // Message priority for actor delivery.
@@ -131,7 +133,7 @@ enum SupervisionStrategy {
 // Block type discriminator.
 enum BlockType {
   BLOCK_TYPE_UNSPECIFIED = 0;
-  BLOCK_TYPE_WASM = 1;       // WebAssembly plugin (EE)
+  BLOCK_TYPE_WASM = 1;       // WebAssembly plugin
   BLOCK_TYPE_CONTAINER = 2;  // OCI container
   BLOCK_TYPE_GRPC = 3;       // gRPC service
   BLOCK_TYPE_HTTP = 4;       // HTTP webhook
@@ -153,6 +155,23 @@ enum EventRecordType {
   EVENT_RECORD_TYPE_RESUMED = 11;
   EVENT_RECORD_TYPE_MIGRATED = 12;
   EVENT_RECORD_TYPE_CONTINUED_AS_NEW = 13;
+  // External task handed to a worker queue.
+  EVENT_RECORD_TYPE_TASK_DISPATCHED = 14;
+  EVENT_RECORD_TYPE_TASK_COMPLETED = 15;
+  EVENT_RECORD_TYPE_TASK_FAILED = 16;
+  // Worker reported progress on a running task.
+  EVENT_RECORD_TYPE_PROGRESS_UPDATED = 17;
+  // Saga compensation lifecycle.
+  EVENT_RECORD_TYPE_COMPENSATION_STARTED = 18;
+  EVENT_RECORD_TYPE_COMPENSATION_COMPLETED = 19;
+  EVENT_RECORD_TYPE_COMPENSATION_FAILED = 20;
+  // Nested (child) workflow lifecycle, recorded on the parent.
+  EVENT_RECORD_TYPE_CHILD_SPAWNED = 21;
+  EVENT_RECORD_TYPE_CHILD_COMPLETED = 22;
+  EVENT_RECORD_TYPE_CHILD_FAILED = 23;
+  EVENT_RECORD_TYPE_CHILD_RESTARTED = 24;
+  // Instance cancelled.
+  EVENT_RECORD_TYPE_CANCELLED = 25;
 }
 
 // Schedule overlap policy.
